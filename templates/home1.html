@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customized Form and Table</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        /* Add custom styles here */
+        .custom-form {
+            background-color: #f7f7f7;
+            padding: 20px;
+        }
+
+        .custom-table {
+            background-color: #fff;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <!-- Form Side -->
+            <div class="col-md-6 custom-form">
+                <h2>Customized Form</h2>
+                <form id="fromsubmit" action="" method="POST">
+                    {% csrf_token%}
+                    <input type="hidden" id="stuid" name="stuid">
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input type="text" class="form-control" id="name" name="name" placeholder="Your name..">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input type="email" class="form-control" name="email" id="email" placeholder="Enter your email">
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone</label>
+                        <input type="number" class="form-control" id="phone" name="phone" placeholder="phone no...">
+                    </div>
+                    <input class="btn btn-primary" type="submit" id="subbtn" value="Submit">
+                </form>
+            </div>
+
+            <!-- Table Side -->
+            <div class="col-md-6 custom-table">
+                <h2>Customized Table</h2>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Number</th>
+                            <th>Edit</th>
+                            <th>Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        {% for dt in deatil1 %}
+                        <tr>
+                            <td>{{dt.id}}</td>
+                            <td>{{dt.name}}</td>
+                            <td>{{dt.email}}</td>
+                            <td>{{dt.phone}}</td>
+                            <td><input type="button" class="btn btn-warning btn-edit" data-sid="{{dt.id}}" value="Edit">
+                            <td><input type="button" class="btn btn-danger btn-del" data-sid="{{dt.id}}" value="Delete"></td>
+                        </tr>
+                        {% endfor %}
+                        
+                        <!-- Add more rows as needed -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JavaScript (optional) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        // JavaScript code for form submission
+document.getElementById("fromsubmit").addEventListener("submit", function(event) {
+    event.preventDefault(); 
+    const formData = new FormData(event.target);
+    // Send AJAX request
+    fetch("{% url 'ajexdata' %}", {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+
+        if (data.message == 'Save') {
+            // Update the table with new data
+            const tableBody = document.getElementById("table-body");
+            tableBody.innerHTML = ""; // Clear existing table rows
+
+            console.log(data)
+            data.alldata.forEach(item => {
+                const newRow = document.createElement("tr");
+                newRow.innerHTML = `
+                    <td>${item.id}</td>
+                    <td>${item.name}</td>
+                    <td>${item.email}</td>
+                    <td>${item.phone}</td>
+                    <td><input type="button" class="btn btn-warning btn-edit" data-sid="${item.id}" value="Edit"></td>
+                    <td><input type="button" class="btn btn-danger btn-del" data-sid="${item.id}" value="Delete"></td>
+                `;
+                tableBody.append(newRow);
+            });
+            deleteDeclaration();
+            EditDeclaration();
+            document.getElementById("stuid").value ="";
+            event.target.reset(); // Reset the form
+            //var btnDelete = document.getElementsByClassName("btn-del");
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+    });
+});
+
+deleteDeclaration();
+
+function deleteDeclaration(){
+var btnDelete = document.getElementsByClassName("btn-del");
+for (let i = 0; i < btnDelete.length; i++) {
+    btnDelete[i].addEventListener('click', (event) => {
+        var findid = event.target.dataset.sid;
+        const deldata = { sid: findid };
+
+        // Send AJAX request for data deletion
+        fetch("{% url 'delete_data' %}", {
+            method: "POST",
+            body: JSON.stringify(deldata),
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message == 'Delete') {
+                const trElement = event.target.closest('tr');
+                trElement.remove();
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+    });
+}
+
+}
+EditDeclaration()
+function EditDeclaration(){
+// JavaScript code for editing data
+var btnEdit = document.getElementsByClassName("btn-edit");
+for (let i = 0; i < btnEdit.length; i++) {
+    btnEdit[i].addEventListener('click', (event) => {
+        var findid = event.target.dataset.sid;
+        const editData = { sid: findid };
+        console.log("clicked")
+
+        // Send AJAX request for data editing
+        fetch("{% url 'edit_data' %}", {
+            method: "POST",
+            body: JSON.stringify(editData),
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Update form fields with data
+            console.log(data)
+            document.getElementById("stuid").value = data.id;
+            document.getElementById("name").value = data.name;
+            document.getElementById("email").value = data.email;
+            document.getElementById("phone").value = data.phone;
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+    });
+}
+}
+
+    </script>
+</body>
+</html>
